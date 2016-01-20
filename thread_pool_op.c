@@ -70,7 +70,7 @@ void  *thread_pool_exec_fn(apr_thread_t *th, void *arg)
     log_printf(4, "tp_recv: Start!!! gid=%d tid=%d\n", gop_id(gop), tid);
     atomic_inc(op->tpc->n_started);
 
-    cs_frame_tp_begin(gop);
+    cs_frame_tp_begin(th, gop);
     status = op->fn(op->arg, gop_id(gop));
     cs_frame_tp_end(status);
 
