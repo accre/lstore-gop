@@ -45,7 +45,8 @@ static void cs_refcount_free(const tb_ref_t * ref);
  
 // External interface
 
-// Called from the caller environment. Caller responsible for frame
+// Called from the caller environment. Caller responsible for sending frame
+// to callee. Frame's reference count is initialized to 1
 void cs_frame_generic_init(cs_frame_t ** frame, cs_depth_t * depth) {
     // Following increments refcount of mother
     cs_frame_t * mother = cs_current_frame_get();
@@ -56,9 +57,15 @@ void cs_frame_generic_init(cs_frame_t ** frame, cs_depth_t * depth) {
 }
 
 // Called from the callee environment
-void cs_frame_generic_begin() {
-    // Following increments refcount of current
-    cs_frame_t * current = cs_current_frame_get();
+void cs_frame_generic_begin(int mode) {
+    cs_frame_t * current;
+    if (mode == GOP_CS_MODE_SYNC) {
+        // Guaranteed to have refcount of 1
+        cs_frame_generic_init(&current, NULL);
+    } else {
+        // Increments current refcount
+        current = cs_current_frame_get();
+    }
     if (current && (current != &cs_root)) {
         // Ownershipt xfers from old tls to current->tls_old.
         // Increment refcount of current->tls_old....
@@ -68,7 +75,7 @@ void cs_frame_generic_begin() {
         // ... then destructor decrements previous objects ref
         cs_current_tls_frame_set(current);
     }
-    if (current)
+    if (current && (mode != GOP_CS_MODE_SYNC))
         tb_ref_dec(&current->refcount);
 }
 

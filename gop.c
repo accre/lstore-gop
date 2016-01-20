@@ -33,6 +33,7 @@ http://www.accre.vanderbilt.edu
 #include "assert_result.h"
 #include <apr_thread_mutex.h>
 #include <apr_thread_cond.h>
+#include "callstack.h"
 #include <stdlib.h>
 #include <string.h>
 #include "type_malloc.h"
@@ -581,9 +582,11 @@ op_generic_t *gop_waitany(op_generic_t *g)
         flush_log();
         if ((g->base.pc->fn->sync_exec != NULL) && (g->base.started_execution == 0)) {  //** See if we can directly exec
             unlock_gop(g);  //** Don't need this for a direct exec
+            cs_frame_sync_begin();
             log_printf(15, "sync_exec -- waiting for gid=%d to complete\n", gop_id(g));
             g->base.pc->fn->sync_exec(g->base.pc, g);
             log_printf(15, "sync_exec -- gid=%d completed with err=%d\n", gop_id(g), g->base.state);
+            cs_frame_sync_end();
             return(g);
         } else {  //** Got to submit it normally
             unlock_gop(g);  //** It's a single task so no need to hold the lock.  Otherwise we can deadlock
@@ -637,10 +640,12 @@ int gop_waitall(op_generic_t *g)
     } else {     //** Got a single task
         if ((g->base.pc->fn->sync_exec != NULL) && (g->base.started_execution == 0)) {  //** See if we can directly exec
             unlock_gop(g);  //** Don't need this for a direct exec
+            cs_frame_sync_begin();
             log_printf(15, "sync_exec -- waiting for gid=%d to complete\n", gop_id(g));
             g->base.pc->fn->sync_exec(g->base.pc, g);
             status = _gop_completed_successfully(g);
             log_printf(15, "sync_exec -- gid=%d completed with err=%d\n", gop_id(g), status);
+            cs_frame_sync_end();
             return(status);
         } else {  //** Got to submit it the normal way
             _gop_start_execution(g);  //** Make sure things have been submitted
@@ -810,10 +815,12 @@ int gop_sync_exec(op_generic_t *gop)
 
     if (gop->type == Q_TYPE_OPERATION) { //** Got an operation so see if we can directly exec it
         if (gop->base.pc->fn->sync_exec != NULL) {  //** Yup we can!
+            cs_frame_sync_begin();
             log_printf(15, "sync_exec -- waiting for gid=%d to complete\n", gop_id(gop));
             gop->base.pc->fn->sync_exec(gop->base.pc, gop);
             err = _gop_completed_successfully(gop);
             log_printf(15, "sync_exec -- gid=%d completed with err=%d\n", gop_id(gop), err);
+            cs_frame_sync_end();
             gop_free(gop, OP_DESTROY);
             return(err);
         }
@@ -841,10 +848,12 @@ op_status_t gop_sync_exec_status(op_generic_t *gop)
 
     if (gop->type == Q_TYPE_OPERATION) { //** Got an operation so see if we can directly exec it
         if (gop->base.pc->fn->sync_exec != NULL) {  //** Yup we can!
+            cs_frame_sync_begin();
             log_printf(15, "sync_exec -- waiting for gid=%d to complete\n", gop_id(gop));
             gop->base.pc->fn->sync_exec(gop->base.pc, gop);
             status = gop->base.status;
             log_printf(15, "sync_exec -- gid=%d completed with err=%d\n", gop_id(gop), status.op_status);
+            cs_frame_sync_end();
             gop_free(gop, OP_DESTROY);
             return(status);
         }

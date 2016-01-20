@@ -13,18 +13,26 @@ typedef struct cs_frame_s {
     tb_ref_t refcount;
 } cs_frame_t;
 
+// Where/how to transfer previous frame
+#define GOP_CS_MODE_TLS 1
+#define GOP_CS_MODE_SYNC 2
+
 // Initialize frame in caller context
 extern void cs_frame_generic_init(cs_frame_t ** frame, cs_depth_t * depth);
 // Just before executing op within callee context
-extern void cs_frame_generic_begin();
+extern void cs_frame_generic_begin(int mode);
 // Just after executing op within callee context
 extern void cs_frame_generic_end();
 
 #define cs_frame_tp_direct_init(frame, depth) cs_frame_generic_init(frame, depth)
-#define cs_frame_tp_direct_begin(th, wrap) cs_frame_generic_begin()
+#define cs_frame_tp_direct_begin(th, wrap) cs_frame_generic_begin(GOP_CS_MODE_TLS)
 #define cs_frame_tp_direct_end(th) cs_frame_generic_end()
 #define cs_frame_tp_init(frame, depth) cs_frame_generic_init(frame, depth)
-#define cs_frame_tp_begin(op) cs_frame_generic_begin()
+#define cs_frame_tp_begin(op) cs_frame_generic_begin(GOP_CS_MODE_TLS)
 #define cs_frame_tp_end(status) cs_frame_generic_end()
+
+// When ops are executed synchronously
+#define cs_frame_sync_begin() cs_frame_generic_begin(GOP_CS_MODE_SYNC)
+#define cs_frame_sync_end() cs_frame_generic_end()
 
 #endif
