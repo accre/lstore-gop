@@ -31,14 +31,14 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMQ_PIPE_COMM")
 
 # common objects
 set(LSTORE_PROJECT_OBJS 
-    callback.c gop.c hconnection.c hportal.c opque.c thread_pool_config.c
+    callback.c callstack.c gop.c hconnection.c hportal.c opque.c thread_pool_config.c
     thread_pool_op.c mq_msg.c mq_zmq.c mq_portal.c mq_ongoing.c mq_stream.c
     mq_helpers.c mq_roundrobin.c
 )
 
 set(LSTORE_PROJECT_INCLUDES
-    callback.h gop_config.h host_portal.h opque.h thread_pool.h mq_portal.h
-    mq_helpers.h mq_stream.h mq_ongoing.h
+    callback.h callstack.h gop_config.h host_portal.h opque.h thread_pool.h mq_portal.h
+    mq_helpers.h mq_stream.h mq_ongoing.h refcount.h
 )
 if(NOT APPLE)
     # OSX doesn't have eventfd.h
