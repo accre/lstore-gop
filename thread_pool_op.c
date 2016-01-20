@@ -34,6 +34,7 @@ http://www.accre.vanderbilt.edu
 #include <string.h>
 #include <assert.h>
 #include "assert_result.h"
+#include "callstack.h"
 #include "thread_pool.h"
 #include "fmttypes.h"
 #include "network.h"
@@ -69,7 +70,9 @@ void  *thread_pool_exec_fn(apr_thread_t *th, void *arg)
     log_printf(4, "tp_recv: Start!!! gid=%d tid=%d\n", gop_id(gop), tid);
     atomic_inc(op->tpc->n_started);
 
+    cs_frame_tp_begin(gop);
     status = op->fn(op->arg, gop_id(gop));
+    cs_frame_tp_end(status);
 
     log_printf(4, "tp_recv: end!!! gid=%d tid=%d status=%d\n", gop_id(gop), tid, status.op_status);
 //log_printf(15, "gid=%d user_priv=%p\n", gop_id(gop), gop_get_private(gop));

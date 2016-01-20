@@ -71,6 +71,12 @@ typedef struct {
     void *arg;
 } thread_pool_op_t;
 
+typedef struct {
+    void *arg;
+    apr_thread_start_t fn;
+} thread_pool_direct_wrap_t;
+
+
 #define tp_get_gop(top) &((top)->gop)
 #define gop_get_tp(gop) (gop)->op->priv
 //#define tp_gop_id(top) ((thread_pool_op_t *)((gop)->op->priv))->id

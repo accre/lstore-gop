@@ -35,6 +35,7 @@ http://www.accre.vanderbilt.edu
 #include <apr_thread_proc.h>
 #include <apr_thread_pool.h>
 #include "apr_wrapper.h"
+#include "callstack.h"
 #include "opque.h"
 #include "thread_pool.h"
 #include "network.h"
@@ -142,6 +143,23 @@ void _tp_close_connection(NetStream_t *ns)
 {
     return;
 }
+
+//*************************************************************
+// thread_pool_direct_wrapper - Passes call frame to
+//     thread_pool_direct functions
+//*************************************************************
+
+static
+void *thread_pool_direct_wrapper(apr_thread_t *th, void *arg)
+{
+    void * ret;
+    thread_pool_direct_wrap_t * wrap = (thread_pool_direct_wrap_t *) arg;
+    cs_frame_tp_direct_begin(th, wrap);
+    ret = wrap->fn(th, wrap->arg);
+    cs_frame_tp_direct_end(th);
+    return ret;
+}
+
 
 //*************************************************************
 // thread_pool_direct - Bypasses the _tp_exec GOP wrapper
