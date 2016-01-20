@@ -41,6 +41,7 @@ http://www.accre.vanderbilt.edu
 #include "opque.h"
 #include "atomic_counter.h"
 #include "apr_wrapper.h"
+#include "gop_control.h"
 
 //** Defined in opque.c
 void _opque_start_execution(opque_t *que);
@@ -455,7 +456,7 @@ void gop_finished_submission(op_generic_t *g)
 
         //** If nothing left to do trigger the condition in case anyone's waiting
         if (g->q->nleft == 0) {
-            apr_thread_cond_broadcast(g->base.ctl->cond);
+            gop_control_cond_broadcast(g);
         }
     }
     unlock_gop(g);
@@ -476,7 +477,7 @@ int gop_wait(op_generic_t *gop)
 
     while (gop->base.state == 0) {
         log_printf(15, "gop_wait: WHILE gid=%d state=%d\n", gop_id(gop), gop->base.state);
-        apr_thread_cond_wait(gop->base.ctl->cond, gop->base.ctl->lock); //** Sleep until something completes
+        gop_control_cond_wait(gop); //** Sleep until something completes
     }
 
     status = gop_get_status(gop);
@@ -570,7 +571,7 @@ op_generic_t *gop_waitany(op_generic_t *g)
         } else {
             _gop_start_execution(g);  //** Make sure things have been submitted
             while (((gop = (op_generic_t *)pop(g->q->finished)) == NULL) && (g->q->nleft > 0)) {
-                apr_thread_cond_wait(g->base.ctl->cond, g->base.ctl->lock); //** Sleep until something completes
+                gop_control_cond_wait(g); //** Sleep until something completes
             }
         }
 
@@ -593,7 +594,7 @@ op_generic_t *gop_waitany(op_generic_t *g)
             _gop_start_execution(g);  //** Make sure things have been submitted
             lock_gop(g);  //** but we do need it for detecting when we're finished.
             while (g->base.state == 0) {
-                apr_thread_cond_wait(g->base.ctl->cond, g->base.ctl->lock); //** Sleep until something completes
+                gop_control_cond_wait(g); //** Sleep until something completes
             }
         }
         log_printf(15, "gop_waitany: AFTER (type=op) While gid=%d state=%d\n", gop_id(g), g->base.state);
@@ -634,7 +635,7 @@ int gop_waitall(op_generic_t *g)
         } else {  //** Got to submit it normally
             _gop_start_execution(g);  //** Make sure things have been submitted
             while (g->q->nleft > 0) {
-                apr_thread_cond_wait(g->base.ctl->cond, g->base.ctl->lock); //** Sleep until something completes
+                gop_control_cond_wait(g); //** Sleep until something completes
             }
         }
     } else {     //** Got a single task
@@ -651,7 +652,7 @@ int gop_waitall(op_generic_t *g)
             _gop_start_execution(g);  //** Make sure things have been submitted
             while (g->base.state == 0) {
                 log_printf(15, "gop_waitall: WHILE gid=%d state=%d\n", gop_id(g), g->base.state);
-                apr_thread_cond_wait(g->base.ctl->cond, g->base.ctl->lock); //** Sleep until something completes
+                gop_control_cond_wait(g); //** Sleep until something completes
             }
         }
     }
@@ -682,12 +683,12 @@ op_generic_t *gop_timed_waitany(op_generic_t *g, int dt)
     loop = 0;
     if (gop_get_type(g) == Q_TYPE_QUE) {
         while (((gop = (op_generic_t *)pop(g->q->finished)) == NULL) && (g->q->nleft > 0) && (loop == 0)) {
-            apr_thread_cond_timedwait(g->base.ctl->cond, g->base.ctl->lock, adt); //** Sleep until something completes
+            gop_control_cond_timedwait(g, adt); //** Sleep until something completes
             loop++;
         }
     } else {
         while ((g->base.state == 0) && (loop == 0)) {
-            apr_thread_cond_timedwait(g->base.ctl->cond, g->base.ctl->lock, adt); //** Sleep until something completes
+            gop_control_cond_timedwait(g, adt); //** Sleep until something completes
             loop++;
         }
 
@@ -716,14 +717,14 @@ int gop_timed_waitall(op_generic_t *g, int dt)
     loop = 0;
     if (gop_get_type(g) == Q_TYPE_QUE) {
         while ((g->q->nleft > 0) && (loop == 0)) {
-            apr_thread_cond_timedwait(g->base.ctl->cond, g->base.ctl->lock, adt); //** Sleep until something completes
+            gop_control_cond_timedwait(g, adt); //** Sleep until something completes
             loop++;
         }
 
         status = (g->q->nleft > 0) ? OP_STATE_RETRY : _gop_completed_successfully(g);
     } else {
         while ((g->base.state == 0) && (loop == 0)) {
-            apr_thread_cond_timedwait(g->base.ctl->cond, g->base.ctl->lock, adt); //** Sleep until something completes
+            gop_control_cond_timedwait(g, adt); //** Sleep until something completes
             loop++;
         }
 
@@ -765,7 +766,7 @@ void single_gop_mark_completed(op_generic_t *gop, op_status_t status)
     base->state = 1;
 
     //** Lastly trigger the signal. for anybody listening
-    apr_thread_cond_broadcast(gop->base.ctl->cond);
+    gop_control_cond_broadcast(gop);
 
     log_printf(15, "gop_mark_completed: after brodcast gid=%d\n", gop_id(gop));
 

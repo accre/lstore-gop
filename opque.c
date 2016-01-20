@@ -32,7 +32,6 @@ http://www.accre.vanderbilt.edu
 #include <assert.h>
 #include "assert_result.h"
 #include <apr_thread_mutex.h>
-#include <apr_thread_cond.h>
 #include <stdlib.h>
 #include <string.h>
 #include "type_malloc.h"
@@ -151,7 +150,7 @@ void _opque_cb(void *v, int mode)
             callback_execute(q->opque->op.base.cb, OP_STATE_SUCCESS);
 
             //** Lastly trigger the signal. for anybody listening
-            apr_thread_cond_broadcast(q->opque->op.base.ctl->cond);
+            gop_control_q_cond_broadcast(q);
         } else if (q->opque->op.base.retries == 0) {  //** How many times we're retried
             //** Trigger the callbacks
             q->opque->op.base.retries++;
@@ -162,7 +161,7 @@ void _opque_cb(void *v, int mode)
             if (q->opque->op.base.failure_mode == 0) {  //** No retry
                 q->opque->op.base.status = op_failure_status;
                 callback_execute(q->opque->op.base.cb, OP_STATE_FAILURE);  //**Execute the other CBs
-                apr_thread_cond_broadcast(q->opque->op.base.ctl->cond);  //** and fail for good
+                gop_control_q_cond_broadcast(q);  //** and fail for good
             }
 
             //** If retrying don't send the broadcast
@@ -170,11 +169,11 @@ void _opque_cb(void *v, int mode)
             flush_log();
         } else {
             //** Finished with errors but trigger the signal for anybody listening
-            apr_thread_cond_broadcast(q->opque->op.base.ctl->cond);
+            gop_control_q_cond_broadcast(q);
         }
     } else {
         //** Not finished but trigger the signal for anybody listening
-        apr_thread_cond_broadcast(q->opque->op.base.ctl->cond);
+        gop_control_q_cond_broadcast(q);
     }
 
     log_printf(15, "_opque_cb: END qid=%d gid=%d\n", gop_id(&(q->opque->op)), gop_id(gop));
