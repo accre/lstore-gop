@@ -11,11 +11,18 @@ typedef struct cs_frame_s {
     void * data;
     cs_depth_t depth;
     tb_ref_t refcount;
+    volatile uint32_t flags;
 } cs_frame_t;
 
 // Where/how to transfer previous frame
 #define GOP_CS_MODE_TLS 1
 #define GOP_CS_MODE_SYNC 2
+
+// Info about the frame
+// First two bits track if the stack is running
+#define GOP_CS_FLAG_PENDING 0x00
+#define GOP_CS_FLAG_RUNNING 0x01
+#define GOP_CS_FLAG_FINISHED 0x02
 
 // Initialize frame in caller context
 extern void cs_frame_generic_init(cs_frame_t ** frame, cs_depth_t * depth);

@@ -42,7 +42,8 @@ static apr_status_t cs_frame_apr_cleanup_destroy(void * frame);
 static cs_frame_t * cs_child_new(cs_frame_t * mother);
 static cs_frame_t * cs_new();
 static void cs_refcount_free(const tb_ref_t * ref);
- 
+static void cs_frame_set_state(cs_frame_t * frame, uint32_t state);
+
 // External interface
 
 // Called from the caller environment. Caller responsible for sending frame
@@ -52,6 +53,7 @@ void cs_frame_generic_init(cs_frame_t ** frame, cs_depth_t * depth) {
     cs_frame_t * mother = cs_current_frame_get();
     *frame = cs_child_new(mother);
     *depth = (*frame)->depth;
+    cs_frame_set_state(*frame, GOP_CS_FLAG_PENDING);
     if (mother)
         tb_ref_dec(&mother->refcount);
 }
@@ -67,6 +69,7 @@ void cs_frame_generic_begin(int mode) {
         current = cs_current_frame_get();
     }
     if (current && (current != &cs_root)) {
+        cs_frame_set_state(current, GOP_CS_FLAG_RUNNING);
         // Ownershipt xfers from old tls to current->tls_old.
         // Increment refcount of current->tls_old....
         cs_frame_t * tls_old = cs_current_tls_frame_get();
@@ -84,6 +87,7 @@ void cs_frame_generic_end() {
     // Following increments refcount of current
     cs_frame_t * current = cs_current_frame_get();
     if (current && (current != &cs_root)) {
+        cs_frame_set_state(current, GOP_CS_FLAG_FINISHED);
         // Increments refcount of current->tls_old
         // Destructor of previous TLS called by APR.
         cs_current_tls_frame_set(current->tls_old);
@@ -94,6 +98,13 @@ void cs_frame_generic_end() {
 }
 
 // Private interface
+
+// Updates the running state of a frame. Currently unused, but the hook is
+// useful for later commits.
+static
+void cs_frame_set_state(cs_frame_t * frame, uint32_t state) {
+
+}
 
 // Retrieves current frame if possible, root frame otherwise
 // Increments refcount
