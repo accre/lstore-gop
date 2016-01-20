@@ -163,6 +163,7 @@ void *thread_pool_direct_wrapper(apr_thread_t *th, void *arg)
     cs_frame_tp_direct_begin(th, wrap);
     ret = wrap->fn(th, wrap->arg);
     cs_frame_tp_direct_end(th);
+    free(wrap);
     return ret;
 }
 
