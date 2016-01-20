@@ -5,7 +5,7 @@
 #include <apr_atomic.h>
 #include <assert.h>
 #include <stddef.h>
-
+#include "log.h"
 // Given a pointer to a ref embedded in another struct, return the address of
 // the outer struct.
 #define container_of(ptr, type, member) \
@@ -18,17 +18,31 @@ struct tb_ref_s {
     volatile apr_uint32_t count;
 };
 
-static inline void tb_ref_inc(const tb_ref_t * ref) {
+#ifndef NDEBUG
+#define tb_ref_inc(ref) do { log_printf(20, "ref_inc %p\n", (ref)); tb_ref_inc_real((ref)); } while(0)
+#define tb_ref_dec(ref) do { log_printf(20, "ref_dec %p\n", (ref)); tb_ref_dec_real((ref)); } while(0)
+#else
+#define tb_ref_inc(ref) tb_ref_inc_real((ref))
+#define tb_ref_dec(ref) tb_ref_dec_real((ref))
+#endif
+
+static inline void tb_ref_inc_real(const tb_ref_t * ref) {
+    assert(ref != NULL);
     apr_atomic_inc32((apr_uint32_t *) &ref->count);
 }
 
-static inline void tb_ref_dec(const tb_ref_t * ref) {
+static inline void tb_ref_dec_real(const tb_ref_t * ref) {
+    assert(ref != NULL);
     assert(apr_atomic_read32((apr_uint32_t *) &ref->count) != 0);
     if (apr_atomic_dec32((apr_uint32_t *) &ref->count) == 0) {
         if (ref->free) {
             ref->free(ref);
         }
     }
+}
+
+static inline apr_uint32_t tb_ref_get(const tb_ref_t * ref) {
+    return apr_atomic_read32((apr_uint32_t *) &ref->count);
 }
 
 #endif
