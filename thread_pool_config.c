@@ -106,8 +106,14 @@ void _tp_submit_op(void *arg, op_generic_t *gop)
     log_printf(15, "_tp_submit_op: gid=%d\n", gop_id(gop));
 
     atomic_inc(op->tpc->n_submitted);
-
-    aerr = apr_thread_pool_push(op->tpc->tp, thread_pool_exec_fn, gop, APR_THREAD_TASK_PRIORITY_NORMAL, NULL);
+    cs_depth_t depth = 0;
+    cs_frame_t * frame = NULL;
+    cs_frame_tp_init(&frame, &depth);
+    depth += APR_THREAD_TASK_PRIORITY_LOW;
+    depth = (depth > APR_THREAD_TASK_PRIORITY_HIGH) ?
+                                            APR_THREAD_TASK_PRIORITY_HIGH :
+                                            depth;
+    aerr = apr_thread_pool_push(op->tpc->tp, thread_pool_exec_fn, gop, (apr_byte_t) depth, (void *)frame);
 
     if (aerr != APR_SUCCESS) {
         log_printf(0, "ERROR submiting task!  aerr=%d gid=%d\n", aerr, gop_id(gop));
