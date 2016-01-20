@@ -43,6 +43,7 @@ http://www.accre.vanderbilt.edu
 #include "stack.h"
 #include "callback.h"
 #include "pigeon_coop.h"
+#include "gop_control.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,11 +76,6 @@ typedef struct op_generic_s op_generic_t;
 #define OP_EXEC_QUEUE    100
 #define OP_EXEC_DIRECT   101
 
-typedef struct {
-    apr_thread_mutex_t *lock;  //** shared lock
-    apr_thread_cond_t *cond;   //** shared condition variable
-    pigeon_coop_hole_t  pch;   //** Pigeon coop hole for the lock and cond
-} gop_control_t;
 
 typedef struct {       //** Generic opcode status
     int op_status;          //** Simplified operation status, OP_SUCCESS or OP_FAILURE

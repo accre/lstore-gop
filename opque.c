@@ -38,6 +38,7 @@ http://www.accre.vanderbilt.edu
 #include "type_malloc.h"
 #include "log.h"
 #include "opque.h"
+#include "gop_control.h"
 #include "atomic_counter.h"
 
 void opque_free(opque_t *q, int mode);
@@ -68,44 +69,6 @@ void _opque_print_stack(Stack_t *stack)
     }
 
     if (stack_size(stack) != i) log_printf(0, "Stack size mismatch! stack_size=%d i=%d\n", stack_size(stack), i);
-}
-
-
-//*************************************************************
-// gop_control_new - Creates a new gop_control shelf set
-//*************************************************************
-
-void *gop_control_new(void *arg, int size)
-{
-    gop_control_t *shelf;
-    int i;
-
-    type_malloc_clear(shelf, gop_control_t, size);
-
-    for (i=0; i<size; i++) {
-        assert_result(apr_thread_mutex_create(&(shelf[i].lock), APR_THREAD_MUTEX_DEFAULT,_opque_pool), APR_SUCCESS);
-        assert_result(apr_thread_cond_create(&(shelf[i].cond), _opque_pool), APR_SUCCESS);
-    }
-
-    return((void *)shelf);
-}
-
-//*************************************************************
-// gop_control_free - Destroys a gop_control set
-//*************************************************************
-
-void gop_control_free(void *arg, int size, void *data)
-{
-    gop_control_t *shelf = (gop_control_t *)data;
-    int i;
-
-    for (i=0; i<size; i++) {
-        apr_thread_mutex_destroy(shelf[i].lock);
-        apr_thread_cond_destroy(shelf[i].cond);
-    }
-
-    free(shelf);
-    return;
 }
 
 //*************************************************************
