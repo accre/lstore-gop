@@ -174,7 +174,22 @@ void *thread_pool_direct_wrapper(apr_thread_t *th, void *arg)
 
 int thread_pool_direct(thread_pool_context_t *tpc, apr_thread_start_t fn, void *arg)
 {
-    int err = apr_thread_pool_push(tpc->tp, fn, arg, APR_THREAD_TASK_PRIORITY_NORMAL, NULL);
+    thread_pool_direct_wrap_t * wrap;
+    cs_frame_t * frame = NULL;
+    cs_depth_t depth = 0;
+    cs_frame_tp_direct_init(&frame, &depth);
+    type_malloc(wrap, thread_pool_direct_wrap_t, 1);
+    wrap->fn = fn;
+    wrap->arg = arg;
+    depth += APR_THREAD_TASK_PRIORITY_LOW;
+    depth = (depth > APR_THREAD_TASK_PRIORITY_HIGH) ?
+                                            APR_THREAD_TASK_PRIORITY_HIGH :
+                                            depth;
+
+    int err = apr_thread_pool_push(tpc->tp, thread_pool_direct_wrapper,
+                                            (void *) wrap,
+                                            (apr_byte_t) depth,
+                                            (void *) frame);
 
     atomic_inc(tpc->n_direct);
 
