@@ -114,7 +114,6 @@ void *gd_thread_func(apr_thread_t *th, void *data)
     while (gd_shutdown == 0) {
         //** Execute everything on the stack
         while ((gop = (op_generic_t *)pop(gd_stack)) != NULL) {
-            log_printf(15, "DUMMY gid=%d status=%d\n", gop_id(gop), gop->base.status);
             apr_thread_mutex_unlock(gd_lock);
             gop_mark_completed(gop, gop->base.status);
             apr_thread_mutex_lock(gd_lock);
@@ -225,16 +224,14 @@ op_generic_t *gop_dummy(op_status_t state)
 
     type_malloc_clear(gop, op_generic_t, 1);
 
-    log_printf(15, " state=%d\n", state);
+    log_printf(15, " state=(%d,%d)\n", state.op_status, state.error_code);
     flush_log();
 
     gop_init(gop);
     gop->base.pc = &_gop_dummy_pc;
     gop->type = Q_TYPE_OPERATION;
-//  gop->base.started_execution = 1;
     gop->base.free = _gop_dummy_free;
     gop->base.status = state;
-//  gop_mark_completed(gop, state);
 
     return(gop);
 }
@@ -741,7 +738,7 @@ void single_gop_mark_completed(op_generic_t *gop, op_status_t status)
     op_common_t *base = &(gop->base);
     int mode;
 
-    log_printf(15, "gop_mark_completed: START gid=%d status=%d\n", gop_id(gop), status);
+    log_printf(15, "gop_mark_completed: START gid=%d status=%d\n", gop_id(gop), status.op_status);
 
     lock_gop(gop);
     log_printf(15, "gop_mark_completed: after lock gid=%d\n", gop_id(gop));
