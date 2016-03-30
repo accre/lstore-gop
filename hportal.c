@@ -68,10 +68,6 @@ int get_hpc_thread_count(portal_context_t *hpc)
 {
     int n;
 
-//  apr_thread_mutex_lock(hpc->lock);
-//  n = hpc->running_threads;
-//  apr_thread_mutex_unlock(hpc->lock);
-
     n = atomic_get(hpc->running_threads);
     return(n);
 }
@@ -82,10 +78,6 @@ int get_hpc_thread_count(portal_context_t *hpc)
 
 void modify_hpc_thread_count(portal_context_t *hpc, int n)
 {
-//  apr_thread_mutex_lock(hpc->lock);
-//  hpc->running_threads = hpc->running_threads + n;
-//  apr_thread_mutex_unlock(hpc->lock);
-
     if (n == -1) {
         atomic_dec(hpc->running_threads);
     } else if (n == 1) {
@@ -234,9 +226,7 @@ host_portal_t *_lookup_hportal(portal_context_t *hpc, char *hostport)
 {
     host_portal_t *hp;
 
-//log_printf(1, "_lookup_hportal: hpc=%p hpc->table=%p\n", hpc, hpc->table);
     hp = (host_portal_t *)(apr_hash_get(hpc->table, hostport, APR_HASH_KEY_STRING));
-//log_printf(1, "_lookup_hportal: hpc=%p hpc->table=%p hp=%p hostport=%s\n", hpc, hpc->table, hp, hostport);
 
     return(hp);
 }
@@ -249,16 +239,12 @@ portal_context_t *create_hportal_context(portal_fn_t *imp)
 {
     portal_context_t *hpc;
 
-//log_printf(1, "create_hportal_context: start\n");
-
     hpc = (portal_context_t *)malloc(sizeof(portal_context_t)); assert(hpc != NULL);
     memset(hpc, 0, sizeof(portal_context_t));
 
 
     assert_result(apr_pool_create(&(hpc->pool), NULL), APR_SUCCESS);
     hpc->table = apr_hash_make(hpc->pool); assert(hpc->table != NULL);
-
-//log_printf(15, "create_hportal_context: hpc=%p hpc->table=%p\n", hpc, hpc->table);
 
     apr_thread_mutex_create(&(hpc->lock), APR_THREAD_MUTEX_DEFAULT, hpc->pool);
 
@@ -352,8 +338,6 @@ void shutdown_hportal(portal_context_t *hpc)
 
     log_printf(15, "shutdown_hportal: Shutting down the whole system\n");
 
-//IFFY  apr_thread_mutex_lock(hpc->lock);
-
     //** First tell everyone to shutdown
     for (hi=apr_hash_first(hpc->pool, hpc->table); hi != NULL; hi = apr_hash_next(hi)) {
         apr_hash_this(hi, NULL, NULL, &val);
@@ -373,14 +357,12 @@ void shutdown_hportal(portal_context_t *hpc)
         while ((hc = (host_connection_t *)get_ele_data(hp->conn_list)) != NULL) {
             free_stack(hp->que, 1);  //** Empty the que so we don't respawn connections
             hp->que = new_stack();
-//        hportal_unlock(hp);
 
             lock_hc(hc);
             hc->shutdown_request = 1;
             apr_thread_cond_signal(hc->recv_cond);
             unlock_hc(hc);
 
-//        hportal_lock(hp);
             move_down(hp->conn_list);
         }
 
@@ -430,8 +412,6 @@ void shutdown_hportal(portal_context_t *hpc)
 
         destroy_hportal(hp);
     }
-
-//IFFY  apr_thread_mutex_unlock(hpc->lock);
 
     return;
 }
@@ -523,7 +503,6 @@ void change_all_hportal_conn(portal_context_t *hpc, int min_conn, int max_conn, 
         hp = (host_portal_t *)val;
 
         hportal_lock(hp);
-//log_printf(0, "change_all_hportal_conn: hp=%s min=%d max=%d\n", hp->skey, min_conn, max_conn);
         hp->min_conn = min_conn;
         hp->max_conn = max_conn;
         hp->stable_conn = max_conn;
@@ -714,12 +693,6 @@ void _hp_fail_tasks(host_portal_t *hp, op_status_t err_code)
         gop_mark_completed(hsop, err_code);
         hportal_lock(hp);
     }
-
-//  while ((hsop = (op_generic_t *)pop(hp->que)) != NULL) {
-//      hportal_unlock(hp);
-//      gop_mark_completed(hsop, err_code);
-//      hportal_lock(hp);
-//  }
 }
 
 //*************************************************************************
