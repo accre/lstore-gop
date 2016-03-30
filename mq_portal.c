@@ -934,7 +934,7 @@ int mqc_heartbeat(mq_conn_t *c, int npoll)
         if (dt > dt_fail) {  //** Dead connection so fail all the commands using it
             if (entry == c->hb_conn) conn_dead = 1;
             klen = apr_time_sec(dt);
-            log_printf(8, "hb->key=%s FAIL dt=%d\n", entry->key, klen);
+            log_printf(8, "hb->key=%s FAIL dt=%d\n", entry->key, (int)klen);
             log_printf(6, "before waiting size=%d\n", apr_hash_count(c->waiting));
 //** NOTE: using internal non-threadsafe iterator.  Should be ok in this case
             for (hit = apr_hash_first(NULL, c->waiting); hit != NULL; hit = apr_hash_next(hit)) {
@@ -967,7 +967,7 @@ int mqc_heartbeat(mq_conn_t *c, int npoll)
             free(entry);
         } else if (dt > dt_check) {  //** Send a heartbeat check
             klen = apr_time_sec(dt);
-            log_printf(10, "hb->key=%s CHECK dt=%d\n", entry->key, klen);
+            log_printf(10, "hb->key=%s CHECK dt=%d\n", entry->key, (int)klen);
             if ((npoll == 1) && (entry == c->hb_conn)) {
                 do_conn_hb = 1;
                 goto next;  //** Skip local hb if finished
@@ -1246,7 +1246,7 @@ int mqc_process_task(mq_conn_t *c, int *npoll, int *nproc)
         log_printf(10, "MQF_PONG_KEY found, num outgoing PONG = %d\n", c->stats.outgoing[MQS_PONG_INDEX]);
     } else {
         c->stats.outgoing[MQS_UNKNOWN_INDEX]++;
-        log_printf(10, "Unknown key found! key = %d\n", data);
+        log_printf(10, "Unknown key found! key = %s\n", data);
     }
 
 //** Send it on
@@ -1398,7 +1398,7 @@ int mq_conn_make(mq_conn_t *c)
     }
 
 fail:
-    log_printf(5, "END status=%d dt=%d frame=%d\n", err, dt, frame);
+    log_printf(5, "END status=%d dt=" TT " frame=%d\n", err, dt, frame);
     mq_msg_destroy(msg);
     return(err);
 }
