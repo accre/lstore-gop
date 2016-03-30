@@ -208,7 +208,7 @@ void destroy_hportal(host_portal_t *hp)
 
     // ** If by chance a task eeked through make sure and force a failure here
     // ** before we destroy the stack.
-    _hp_fail_tasks(hp, op_status_failure)
+    _hp_fail_tasks(hp, op_failure_status);
     free_stack(hp->que, 1);
 
     hp->context->fn->destroy_connect_context(hp->connect_context);
